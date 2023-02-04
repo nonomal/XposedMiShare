@@ -53,13 +53,13 @@ jobs:
         id: build_debug
         run: |
           ./gradlew assembleDebug --stacktrace
-          echo "::set-output name=package_path::$(readlink -f app/build/outputs/apk/debug/app-debug.apk)"
+          echo "{package_path}={$(readlink -f app/build/outputs/apk/debug/app-debug.apk)}" >> $GITHUB_OUTPUT
 
       - name: Build Release Apk(s)
         id: build_release
         run: |
           ./gradlew assembleRelease --stacktrace
-          echo "::set-output name=package_path::$(readlink -f app/build/outputs/apk/release/app-release.apk)"
+          echo "{package_path}={$(readlink -f app/build/outputs/apk/release/app-release.apk)}" >> $GITHUB_OUTPUT
 
       - name: Make Magisk Module
         id: make_module
@@ -79,7 +79,7 @@ jobs:
           python $workbenchDir/set-manifest.py $workbenchDir/cache/MiShare/AndroidManifest.xml $workbenchDir/cache/MiShare/AndroidManifest.xml
           cat $workbenchDir/cache/MiShare/AndroidManifest.xml
 
-          cp -r $workbenchDir/MiShare/* $workbenchDir/cache/MiShare
+          # cp -r $workbenchDir/MiShare/* $workbenchDir/cache/MiShare
           java -jar $workbenchDir/apktool.jar b -f $workbenchDir/cache/MiShare -o $workbenchDir/cache/MiShare_apktool.apk
 
           # https://github.com/LSPosed/LSPatch
@@ -97,7 +97,7 @@ jobs:
           zipalign -p -f -v 4 $workbenchDir/cache/MiShare_lspatch_2.apk $workbenchDir/cache/MiShare_lspatch_3.apk
 
           # 签名
-          java -jar $workbenchDir/apksigner.jar sign --ks $workbenchDir/debug.keystore --ks-key-alias AndroidDebugKey --ks-pass pass:android --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true --v4-signing-enabled true --out $workbenchDir/cache/MiShare_sign.apk $workbenchDir/cache/MiShare_lspatch_3.apk
+          java -jar $workbenchDir/apksigner.jar sign --ks $workbenchDir/debug.keystore --ks-key-alias AndroidDebugKey --ks-pass pass:android --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true --v4-signing-enabled true --min-sdk-version 26 --out $workbenchDir/cache/MiShare_sign.apk $workbenchDir/cache/MiShare_lspatch_3.apk
 
           # 更新 Magisk 模块
           git clone https://github.com/iamr0s/MiShare-Magisk-Module.git $workbenchDir/cache/MiShare-Magisk-Module
@@ -113,7 +113,7 @@ jobs:
           git add .
           git commit -m "make a new MiShare.apk by actions@github"
 
-          echo "::set-output name=module_path::$(echo $workbenchDir/cache/MiShare-Magisk-Module)"
+          echo "{module_path}={$(echo $workbenchDir/cache/MiShare-Magisk-Module)}" >> $GITHUB_OUTPUT
 
       # - name: Setup Debug Session
       #   uses: csexton/debugger-action@master
@@ -123,10 +123,10 @@ jobs:
         env:
           EVENT_TYPE: ${{ github.event_name }}
         run: |
-          echo "::set-output name=sha::$(git rev-parse HEAD)"
-          echo "::set-output name=short_sha::$(git rev-parse --short HEAD)"
-          echo "::set-output name=version_code::$(grep "versionCode" buildData/version.properties|cut -d'=' -f2)"
-          echo "::set-output name=version_name::$(grep "versionName" buildData/version.properties|cut -d'=' -f2)"
+          echo "{sha}={$(git rev-parse HEAD)}" >> $GITHUB_OUTPUT
+          echo "{short_sha}={$(git rev-parse --short HEAD)}" >> $GITHUB_OUTPUT
+          echo "{version_code}={$(grep "versionCode" buildData/version.properties|cut -d'=' -f2)}" >> $GITHUB_OUTPUT
+          echo "{version_name}={$(grep "versionName" buildData/version.properties|cut -d'=' -f2)}" >> $GITHUB_OUTPUT
 
       - name: Push Changes To MiShare-Magisk-Module
         uses: ad-m/github-push-action@master
